@@ -1,5 +1,5 @@
 provider "aws"{
-  region = "us-west-1"
+  region = "us-east-1"
   access_key = "AKIA2E3L4YQVEQA7YRVF"
   secret_key = "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"
 }
@@ -104,7 +104,7 @@ resource "aws_route_table_association" "b" {
 resource "aws_subnet" "subnet1"{
     vpc_id = aws_vpc.vpc1.id
     cidr_block = "10.0.0.0/28"
-    availability_zone = "us-west-1b"
+    availability_zone = "us-east-1b"
      tags = {
         Name = "first-zone"
     }
@@ -113,7 +113,7 @@ resource "aws_subnet" "subnet1"{
 resource "aws_subnet" "subnet2"{
     vpc_id = aws_vpc.vpc1.id
     cidr_block = "10.0.0.32/28"
-    availability_zone = "us-west-1c"
+    availability_zone = "us-east-1c"
 
      tags = {
         Name = "second-zone"
@@ -122,14 +122,14 @@ resource "aws_subnet" "subnet2"{
 
 resource "aws_network_interface" "network-1" {
   subnet_id       = aws_subnet.subnet1.id
-  private_ips     = ["10.0.0.0/28"]
+  private_ips     = ["10.0.0.4"]
   security_groups = [aws_security_group.allow_security.id]
 
 }
 
 resource "aws_network_interface" "network-2" {
   subnet_id       = aws_subnet.subnet2.id
-  private_ips     = ["10.0.0.0.1/28"]
+  private_ips     = ["10.0.0.36"]
   security_groups = [aws_security_group.allow_security.id]
 
 }
@@ -138,7 +138,7 @@ resource "aws_network_interface" "network-2" {
 resource "aws_eip" "one" {
   vpc                       = true
   network_interface         = aws_network_interface.network-1.id
-  associate_with_private_ip = "10.0.0.0.50"
+  associate_with_private_ip = "10.0.0.4"
   depends_on = [aws_internet_gateway.gw]
      
   
@@ -148,16 +148,16 @@ resource "aws_eip" "one" {
 resource "aws_eip" "two" {
   vpc                       = true
   network_interface         = aws_network_interface.network-2.id
-  associate_with_private_ip = "10.0.0.0.51"
+  associate_with_private_ip = "10.0.0.36"
   depends_on = [aws_internet_gateway.gw]
      
   
 }
 
 resource "aws_instance" "web-server-instance1"{
-    ami = "ami-09e67e426f25ce0d7"
+    ami = "ami-02e136e904f3da870"
     instance_type = "t2.micro"
-    availability_zone = "us-west-1b"
+    availability_zone = "us-east-1b"
     key_name = "primary-key"
     subnet_id = aws_subnet.subnet1.id
     vpc_security_group_ids = [aws_security_group.allow_security.id]
@@ -182,7 +182,7 @@ resource "aws_instance" "web-server-instance1"{
 resource "aws_instance" "web-server-instance2"{
     ami = "ami-02e136e904f3da870"
     instance_type = "t2.micro"
-    availability_zone = "us-west-1c"
+    availability_zone = "us-east-1c"
     key_name = "primary-key"
     subnet_id = aws_subnet.subnet2.id
     vpc_security_group_ids = [aws_security_group.allow_security.id]
