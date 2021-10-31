@@ -1,9 +1,16 @@
 provider "aws"{
   region = "us-east-1"
-  access_key = "AKIA2E3L4YQVEQA7YRVF"
-  secret_key = "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"
+  access_key = var.a_key
+  secret_key = var.s_key
 }
 
+variable "a_key" {
+    type        = string
+}
+
+variable "s_key" {
+    type        = string
+}
 resource "aws_vpc" "vpc1"{
     cidr_block = "10.0.0.0/26"
     tags = {
@@ -32,7 +39,7 @@ resource "aws_route_table" "first-route-table" {
     Name = "Main"
   }
 }
-
+/*
 resource "aws_route_table" "second-route-table" {
     vpc_id = aws_vpc.vpc1.id
 
@@ -49,6 +56,7 @@ resource "aws_route_table" "second-route-table" {
     Name = "Main"
   }
 }
+*/
 
 resource "aws_security_group" "allow_security" {
   name        = "allow_security"
@@ -96,15 +104,15 @@ resource "aws_route_table_association" "a" {
   route_table_id = aws_route_table.first-route-table.id
 }
 
-resource "aws_route_table_association" "b" {
+resource "aws_route_table_association" "c" {
   subnet_id      = aws_subnet.subnet2.id
-  route_table_id = aws_route_table.second-route-table.id
+  route_table_id = aws_route_table.first-route-table.id
 }
 
 resource "aws_subnet" "subnet1"{
     vpc_id = aws_vpc.vpc1.id
     cidr_block = "10.0.0.0/28"
-    availability_zone = "us-east-1b"
+    availability_zone = "us-east-1a"
      tags = {
         Name = "first-zone"
     }
@@ -113,7 +121,7 @@ resource "aws_subnet" "subnet1"{
 resource "aws_subnet" "subnet2"{
     vpc_id = aws_vpc.vpc1.id
     cidr_block = "10.0.0.32/28"
-    availability_zone = "us-east-1c"
+    availability_zone = "us-east-1b"
 
      tags = {
         Name = "second-zone"
@@ -155,12 +163,10 @@ resource "aws_eip" "two" {
 }
 
 resource "aws_instance" "web-server-instance1"{
-    ami = "ami-02e136e904f3da870"
+    ami = "ami-09e67e426f25ce0d7"
     instance_type = "t2.micro"
-    availability_zone = "us-east-1b"
+    availability_zone = "us-east-1a"
     key_name = "primary-key"
-    subnet_id = aws_subnet.subnet1.id
-    vpc_security_group_ids = [aws_security_group.allow_security.id]
 
     network_interface {
       device_index = 0
@@ -180,12 +186,10 @@ resource "aws_instance" "web-server-instance1"{
 }
 
 resource "aws_instance" "web-server-instance2"{
-    ami = "ami-02e136e904f3da870"
+    ami = "ami-09e67e426f25ce0d7"
     instance_type = "t2.micro"
-    availability_zone = "us-east-1c"
+    availability_zone = "us-east-1b"
     key_name = "primary-key"
-    subnet_id = aws_subnet.subnet2.id
-    vpc_security_group_ids = [aws_security_group.allow_security.id]
 
 
     network_interface {
@@ -200,7 +204,9 @@ resource "aws_instance" "web-server-instance2"{
                 sudo bash -c 'echo second instance works! > /var/www/html/index.htm'
                 EOF
     tags = {
-        Name = "web-server"
+        Name = "web-server2"
     }
 
 }
+
+//resource "aws_alb" "load balancer"{}
