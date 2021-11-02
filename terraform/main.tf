@@ -77,10 +77,10 @@ resource "aws_security_group" "allow_security" {
     protocol         = "tcp"
     cidr_blocks      = ["0.0.0.0/0"]
   }
-    ingress {
+  ingress {
     description      = "SSH"
-    from_port        = 2
-    to_port          = 2
+    from_port        = 22
+    to_port          = 22
     protocol         = "tcp"
     cidr_blocks      = ["0.0.0.0/0"]
   }
@@ -104,7 +104,7 @@ resource "aws_route_table_association" "a" {
   route_table_id = aws_route_table.first-route-table.id
 }
 
-resource "aws_route_table_association" "c" {
+resource "aws_route_table_association" "b" {
   subnet_id      = aws_subnet.subnet2.id
   route_table_id = aws_route_table.first-route-table.id
 }
@@ -177,7 +177,7 @@ resource "aws_instance" "web-server-instance1"{
                 sudo apt update -y
                 sudo apt install apache2 -y
                 sudo systemctl start apache2
-                sudo bash -c 'echo first instance works! > /var/www/html/index.html'
+                sudo bash -c 'echo first instance works > /var/www/html/index.html'
                 EOF
     tags = {
         Name = "web-server"
@@ -201,7 +201,7 @@ resource "aws_instance" "web-server-instance2"{
                 sudo apt update -y
                 sudo apt install apache2 -y
                 sudo systemctl start apache2
-                sudo bash -c 'echo second instance works! > /var/www/html/index.htm'
+                sudo bash -c 'echo second instance works > /var/www/html/index.html'
                 EOF
     tags = {
         Name = "web-server2"
@@ -209,4 +209,40 @@ resource "aws_instance" "web-server-instance2"{
 
 }
 
-//resource "aws_alb" "load balancer"{}
+/*resource "aws_alb" "load balancer"{
+  name = "test-1"
+  load_balancer_type = "application"
+  subnets = [aws.subnet1.id, ]
+
+  security_groups = [aws_security_group.allow_security.id]
+
+
+  resource "aws_lb_target_group" "target_group"{
+    name = "target-group"
+    port = 80
+    protocol = "HTTP"
+    target_type = "ip"
+    vpc_id = "aws"
+    }
+  
+  resource "aws_lb_listener" "listener"{
+    load_balancer_arn = aws_alb.application_load_balancer.arn
+    port = 80
+    protocol = "HTTP"
+    default action {
+      type = "forward"
+      target_group_arn =  aws_lb_target_group.target_group.arn
+    }
+  }
+
+  "aws_ecs service"{
+    load balancer{
+      target_group_arn = aws_lb_target_group.arn
+      container_name = aws_ecs_task_definition.my_first_task.family
+      container_port = 3300
+    }
+  }
+}
+
+
+*/
