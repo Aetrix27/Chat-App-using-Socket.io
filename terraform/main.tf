@@ -13,6 +13,8 @@ variable "s_key" {
 }
 resource "aws_vpc" "vpc1"{
     cidr_block = "10.0.0.0/26"
+    enable_dns_hostnames = true
+
     tags = {
         Name = "production-vpc"
     }
@@ -69,11 +71,22 @@ resource "aws_security_group" "allow_security" {
     to_port          = 443
     protocol         = "tcp"
     cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+
   }
   ingress {
     description      = "HTTP"
     from_port        = 80
     to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+
+  }
+  ingress {
+    description      = "HTTPS"
+    from_port        = 8080
+    to_port          = 8080
     protocol         = "tcp"
     cidr_blocks      = ["0.0.0.0/0"]
   }
@@ -84,13 +97,12 @@ resource "aws_security_group" "allow_security" {
     protocol         = "tcp"
     cidr_blocks      = ["0.0.0.0/0"]
   }
-
   egress{
-        from_port        = 0
-        to_port          = 0
-        protocol         = "-1"
-        cidr_blocks      = ["0.0.0.0/0"]
-        //ipv6_cidr_blocks = ["::/0"]
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
     }
   
 
@@ -209,40 +221,53 @@ resource "aws_instance" "web-server-instance2"{
 
 }
 
-/*resource "aws_alb" "load balancer"{
+resource "aws_alb" "load_balancer"{
   name = "test-1"
   load_balancer_type = "application"
-  subnets = [aws.subnet1.id, ]
+  subnets = [aws_subnet.subnet1.id, aws_subnet.subnet2.id]
 
   security_groups = [aws_security_group.allow_security.id]
 
 
+}
   resource "aws_lb_target_group" "target_group"{
     name = "target-group"
     port = 80
     protocol = "HTTP"
     target_type = "ip"
-    vpc_id = "aws"
-    }
-  
-  resource "aws_lb_listener" "listener"{
-    load_balancer_arn = aws_alb.application_load_balancer.arn
-    port = 80
-    protocol = "HTTP"
-    default action {
-      type = "forward"
-      target_group_arn =  aws_lb_target_group.target_group.arn
-    }
-  }
+    vpc_id = aws_vpc.vpc1.id
 
-  "aws_ecs service"{
-    load balancer{
-      target_group_arn = aws_lb_target_group.arn
-      container_name = aws_ecs_task_definition.my_first_task.family
-      container_port = 3300
+     health_check {
+      matcher = "200,301,302"
+      path = "/"
     }
-  }
+
 }
 
+/*
+resource "aws_security_group" "load_balancer_security"{
+  ingress {
+    from_port = 80
+    to_port = 80
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress{
 
+  }
+}
 */
+  resource "aws_lb_listener" "listener"{
+    load_balancer_arn = aws_alb.load_balancer.arn
+    port = 80
+    protocol = "HTTP"
+    default_action{
+      type = "forward"
+      target_group_arn = aws_lb_target_group.target_group.arn
+    }
+  }
+
+
+
+
+
