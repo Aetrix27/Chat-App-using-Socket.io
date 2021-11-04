@@ -36,33 +36,14 @@ resource "aws_route_table" "first-route-table" {
       gateway_id = aws_internet_gateway.gw.id
     }
   
-
   tags = {
     Name = "Main"
   }
 }
-/*
-resource "aws_route_table" "second-route-table" {
-    vpc_id = aws_vpc.vpc1.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.gw.id
-  }
-  route{
-      ipv6_cidr_block        = "::/0"
-      gateway_id = aws_internet_gateway.gw.id
-    }
-
-  tags = {
-    Name = "Main"
-  }
-}
-*/
 
 resource "aws_security_group" "allow_security" {
   name        = "allow_security"
-  description = "Allow TLS inbound traffic"
+  description = "Allow traffic"
   vpc_id      = aws_vpc.vpc1.id
 
   ingress {
@@ -84,9 +65,16 @@ resource "aws_security_group" "allow_security" {
 
   }
   ingress {
-    description      = "HTTPS"
+    description      = "HTTP"
     from_port        = 8080
     to_port          = 8080
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+  ingress {
+    description      = "HTTP"
+    from_port        = 3000
+    to_port          = 3000
     protocol         = "tcp"
     cidr_blocks      = ["0.0.0.0/0"]
   }
@@ -161,7 +149,6 @@ resource "aws_eip" "one" {
   associate_with_private_ip = "10.0.0.4"
   depends_on = [aws_internet_gateway.gw]
      
-  
 }
 
 
@@ -171,7 +158,6 @@ resource "aws_eip" "two" {
   associate_with_private_ip = "10.0.0.36"
   depends_on = [aws_internet_gateway.gw]
      
-  
 }
 
 resource "aws_instance" "web-server-instance1"{
@@ -203,7 +189,6 @@ resource "aws_instance" "web-server-instance2"{
     availability_zone = "us-east-1b"
     key_name = "primary-key"
 
-
     network_interface {
       device_index = 0
       network_interface_id = aws_network_interface.network-2.id
@@ -221,9 +206,10 @@ resource "aws_instance" "web-server-instance2"{
 
 }
 
-resource "aws_alb" "load_balancer"{
-  name = "test-1"
+resource "aws_lb" "load_balancer"{
+  name = "load-1"
   load_balancer_type = "application"
+  ip_address_type = "ipv4"
   subnets = [aws_subnet.subnet1.id, aws_subnet.subnet2.id]
 
   security_groups = [aws_security_group.allow_security.id]
@@ -234,40 +220,37 @@ resource "aws_alb" "load_balancer"{
     name = "target-group"
     port = 80
     protocol = "HTTP"
-    target_type = "ip"
+    target_type = "instance"
     vpc_id = aws_vpc.vpc1.id
 
      health_check {
-      matcher = "200,301,302"
+      protocol = "HTTP"
+      matcher = "200-450"
       path = "/"
     }
 
 }
 
-/*
-resource "aws_security_group" "load_balancer_security"{
-  ingress {
-    from_port = 80
-    to_port = 80
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  egress{
+resource "aws_alb_target_group_attachment" "target1" {
+  target_group_arn = aws_lb_target_group.target_group.arn
+  target_id        = aws_instance.web-server-instance1.id
+  port             = 8080
+}
 
+resource "aws_alb_target_group_attachment" "target2" {
+  target_group_arn = aws_lb_target_group.target_group.arn
+  target_id        = aws_instance.web-server-instance2.id
+  port             = 3000
+}
+
+
+resource "aws_lb_listener" "listener"{
+  load_balancer_arn = aws_lb.load_balancer.arn
+  port = 80
+  protocol = "HTTP"
+  default_action{
+    type = "forward"
+    target_group_arn = aws_lb_target_group.target_group.arn
   }
 }
-*/
-  resource "aws_lb_listener" "listener"{
-    load_balancer_arn = aws_alb.load_balancer.arn
-    port = 80
-    protocol = "HTTP"
-    default_action{
-      type = "forward"
-      target_group_arn = aws_lb_target_group.target_group.arn
-    }
-  }
-
-
-
-
 
