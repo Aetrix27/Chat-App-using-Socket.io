@@ -55,35 +55,34 @@ resource "aws_security_group" "allow_security" {
     ipv6_cidr_blocks = ["::/0"]
 
   }
+/*
   ingress {
-    description      = "HTTP"
-    from_port        = 80
-    to_port          = 80
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
-
-  }
-  ingress {
-    description      = "HTTP"
+    description      = "HTTPS"
     from_port        = 8080
     to_port          = 8080
     protocol         = "tcp"
     cidr_blocks      = ["0.0.0.0/0"]
   }
   ingress {
-    description      = "HTTP"
+    description      = "HTTPS"
     from_port        = 3000
     to_port          = 3000
     protocol         = "tcp"
     cidr_blocks      = ["0.0.0.0/0"]
   }
+*/
   ingress {
     description      = "SSH"
     from_port        = 22
     to_port          = 22
     protocol         = "tcp"
     cidr_blocks      = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 80 
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] 
   }
   egress{
     from_port        = 0
@@ -92,7 +91,8 @@ resource "aws_security_group" "allow_security" {
     cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
     }
-  
+
+    
 
   tags = {
     Name = "allow_security"
@@ -142,7 +142,6 @@ resource "aws_network_interface" "network-2" {
 
 }
 
-
 resource "aws_eip" "one" {
   vpc                       = true
   network_interface         = aws_network_interface.network-1.id
@@ -172,10 +171,15 @@ resource "aws_instance" "web-server-instance1"{
     }
 
     user_data = <<-EOF
+                #!/bin/bash
+                sudo apt-get install software-properties-common
+                sudo apt-add-repository ppa:ansible/ansible
+                sudo apt-get update
+                sudo apt-get install ansible
                 sudo apt update -y
                 sudo apt install apache2 -y
                 sudo systemctl start apache2
-                sudo bash -c 'echo first instance works > /var/www/html/index.html'
+                sudo bash -c 'echo instance works > /var/www/html/index.html'
                 EOF
     tags = {
         Name = "web-server"
@@ -195,10 +199,15 @@ resource "aws_instance" "web-server-instance2"{
     }
 
     user_data = <<-EOF
+                #!/bin/bash
+                sudo apt-get install software-properties-common
+                sudo apt-add-repository ppa:ansible/ansible
+                sudo apt-get update
+                sudo apt-get install ansible
                 sudo apt update -y
                 sudo apt install apache2 -y
                 sudo systemctl start apache2
-                sudo bash -c 'echo second instance works > /var/www/html/index.html'
+                sudo bash -c 'echo instance works > /var/www/html/index.html'
                 EOF
     tags = {
         Name = "web-server2"
@@ -206,7 +215,7 @@ resource "aws_instance" "web-server-instance2"{
 
 }
 
-resource "aws_lb" "load_balancer"{
+resource "aws_alb" "load_balancer"{
   name = "load-1"
   load_balancer_type = "application"
   ip_address_type = "ipv4"
@@ -223,29 +232,33 @@ resource "aws_lb" "load_balancer"{
     target_type = "instance"
     vpc_id = aws_vpc.vpc1.id
 
-     health_check {
+    health_check {
       protocol = "HTTP"
       matcher = "200-450"
       path = "/"
-    }
+      timeout  = 25
+      interval  = 30
+      healthy_threshold   = 2
+      unhealthy_threshold = 3
+  }
 
 }
 
 resource "aws_alb_target_group_attachment" "target1" {
   target_group_arn = aws_lb_target_group.target_group.arn
   target_id        = aws_instance.web-server-instance1.id
-  port             = 8080
+  port             = 80
 }
 
 resource "aws_alb_target_group_attachment" "target2" {
   target_group_arn = aws_lb_target_group.target_group.arn
   target_id        = aws_instance.web-server-instance2.id
-  port             = 3000
+  port             = 80
 }
 
 
 resource "aws_lb_listener" "listener"{
-  load_balancer_arn = aws_lb.load_balancer.arn
+  load_balancer_arn = aws_alb.load_balancer.arn
   port = 80
   protocol = "HTTP"
   default_action{
@@ -253,4 +266,3 @@ resource "aws_lb_listener" "listener"{
     target_group_arn = aws_lb_target_group.target_group.arn
   }
 }
-

@@ -32,7 +32,7 @@ io.on('connection', (socket) => {
 	});
 });
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 80;
 
 // port to listen
 http.listen(PORT, function(){
