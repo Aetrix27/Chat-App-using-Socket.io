@@ -92,8 +92,6 @@ resource "aws_security_group" "allow_security" {
     ipv6_cidr_blocks = ["::/0"]
     }
 
-    
-
   tags = {
     Name = "allow_security"
   }

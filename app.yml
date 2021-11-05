@@ -1,52 +1,78 @@
 ---
-- hosts: devops
-  sudo: yes
+- hosts: localhost
+  gather_facts: no
+  become: yes
 
   vars:
-    - repo: https://github.com/Aetrix27/Chat-App-using-Socket.io
-    - homeDir : /home/ubuntu
-    - appDir: app
-    - private_key : /Users/David/.ssh/id_rsa
-    - github_name : aetrix27
+      git_repo: https://github.com/Aetrix27/Chat-App-using-Socket.io
+      local_repo_path: /home/ubuntu
+      repo_branch: master
 
-  tasks:
-    -name: Install Packages
-      apt: name = {{item }} update_cache=yes state=latest 
-      with_items:
-        - build-essential
-        - npm
-        - mcrypt
-        - nginx
-        - curl
-        - nodejs-legacy
-        - git
-    -name: Install pm2
-      npm: name=pm2 global=yes production=yes
+  tasks: 
+  - name: Run apt-get update
+    apt:
+     update_cache: yes
+  - name: Ansible shell commands
+    shell: 'curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash -'
+  - name: Install packages
+    apt: name={{ item }} state=present
+    with_items:
+      - nodejs
+      - nginx
+      - git
+      - wget
+      - curl
 
-    -name: Create APP Directory
-     file = path={{homeDir}}/{{appDir}} state=directory
-    
-    -name: Copy PK
-    copy: src = {{private_key}} dest = {{homeDir}} mode=0600
+   - name: Clone a private repository
+    git:
+     repo: "{{ git_repo }}"
+     dest: "{{ local_repo_path }}"
+     version: "{{ repo_branch }}"
+     accept_hostkey: yes
+  - name: npm install package.json
+    npm:
+      path: "{{ local_repo_path }}"
+      state: present
+  - name: Build app
+    command: npm run build
+    args:
+      chdir: "{{ local_repo_path }}"
+  - name: Copy folder to /var/www
+    copy:
+     src: "{{ local_repo_path }}/build"
+     dest: /var/www
+     remote_src: no
+  
+- name: Recursively change ownership of a directory
+    file:
+        path: /etc/nginx/SSL
+        state: directory
+        recurse: yes
+  - name: Retrieve OpenSSH key pair
+    copy:
+        owner: root
+        group: root
+        src: "{{ item.0 }}"
+        dest: "{{ item.1 }}"
+        mode: "0400"
+      with_together:
+        - ['local_path/example.crt', 'local_path/example.key', 'example.conf']
+        - ['/etc/nginx/SSL/example.crt', '/etc/nginx/SSL/example.key', '/etc/nginx/sites-available/example.conf']
 
-    -name: Clone Git Repo
-    git: repo=git@github.com:{{github_name}}/{{repo}}.git dest = {{homeDir}}/{{appDir}} update=yes force=yes accept_hostkeys  key_file={{homeDir}}/id_rsa
-    register: git_finished
+  - name: Makes a link
+    file:
+      src: /etc/ngnix/sites-available/example.conf
+      dest: /etc/nginx/sites-enabled/example.conf
+      state: link
+  - name: Remove files
+    file:
+     path: "{{ item }}"
+     state: absent
+    with_items:
+      - /etc/nginx/sites-enabled/default
+      - /etc/nginx/sites-available/default
 
-    - name: Running NPM install
-      npm: path={{homeDir}}/{{appDir}}/backend
-      register: npm_finished
-      when: git_finished.changed
-    
-    -name: Stop APP 
-      sudo_user: ubuntu
-      command: pm2 stop app chdir={{homeDir}}
-      ignore_errors: yes
-    
-    -name: Start APP
-        sudo_user: ubuntu
-        command: pm2 start index.js --name app chdir={{homeDir}}/{{appDir}}/backend
-        ignore_errors: yes
-        when: npm_finished.changed
-
-    
+  - name: Restart nginx 
+    service:
+      name: nginx
+      state: restarted
