@@ -1,5 +1,5 @@
 ---
-- hosts: localhost
+- hosts: webservers
   gather_facts: no
   become: yes
 
@@ -34,7 +34,7 @@
       path: "{{ local_repo_path }}"
       state: present
   - name: Build app
-    command: npm run build
+    command: npm run main
     args:
       chdir: "{{ local_repo_path }}"
   - name: Copy folder to /var/www
