@@ -170,10 +170,8 @@ resource "aws_instance" "web-server-instance1"{
 
     user_data = <<-EOF
                 #!/bin/bash
-                sudo apt-get install software-properties-common
-                sudo apt-add-repository ppa:ansible/ansible
-                sudo apt-get update
-                sudo apt-get install ansible
+                sudo apt install ansible
+                ansible-playbook -i /path/hosts  /path/app.yml
                 sudo apt update -y
                 sudo apt install apache2 -y
                 sudo systemctl start apache2
@@ -198,10 +196,8 @@ resource "aws_instance" "web-server-instance2"{
 
     user_data = <<-EOF
                 #!/bin/bash
-                sudo apt-get install software-properties-common
-                sudo apt-add-repository ppa:ansible/ansible
-                sudo apt-get update
-                sudo apt-get install ansible
+                sudo apt install ansible
+                ansible-playbook -i /path/hosts  /path/app.yml
                 sudo apt update -y
                 sudo apt install apache2 -y
                 sudo systemctl start apache2
