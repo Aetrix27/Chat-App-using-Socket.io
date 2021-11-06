@@ -34,20 +34,21 @@
     command: npm run main
     args:
       chdir: /home/ubuntu
-  - name: setup nginx
-      apt: name=nginx update_cache=yes state=latest
       
+  - name: Install apache2
+    apt: name=apache2 update_cache=yes state=latest
+
   - name: Copy folder to /var/www
     copy:
-     src: /home/ubuntu/build
-     dest: /var/www
-     remote_src: no
+      src: /home/ubuntu/build
+      dest: /var/www
+      remote_src: no
   
   - name: Recursively change ownership of a directory
-      file:
-          path: /etc/nginx/SSL
-          state: directory
-          recurse: yes
+    file:
+        path: /etc/nginx/SSL
+        state: directory
+        recurse: yes
 
   - name: Makes a link
     file:
