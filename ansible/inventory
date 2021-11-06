@@ -1,3 +1,6 @@
-[webserver]
-web ansible_host=3.86.22.78 ansible_connection=ssh 
-ansible_ssh_user=ubuntu  ansible_ssh_private_key_file=./primary-key.pem
+web1 ansible_host=3.86.22.78 ansible_connection=ssh ansible_ssh_user=ubuntu  
+web2 ansible_host=3.86.22.78 ansible_connection=ssh ansible_ssh_user=ubuntu  
+
+[all]
+web1
+web2

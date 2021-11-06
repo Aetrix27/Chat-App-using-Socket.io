@@ -3,11 +3,6 @@
   gather_facts: no
   become: yes
 
-  vars:
-      git_repo: https://github.com/Aetrix27/Chat-App-using-Socket.io
-      local_repo_path: /home/ubuntu
-      repo_branch: master
-
   tasks: 
   - name: Run apt-get update
     apt:
@@ -25,45 +20,41 @@
 
   - name: Clone a private repository
     git:
-      repo: "{{ git_repo }}"
-      version: "{{ repo_branch }}"
-      dest: "{{ local_repo_path }}"
+      repo: https://github.com/Aetrix27/Chat-App-using-Socket.io
+      version: master
+      dest: /home/ubuntu
       accept_hostkey: yes
+
   - name: npm install package.json
     npm:
-      path: "{{ local_repo_path }}"
+      path: /home/ubuntu
       state: present
+
   - name: Build app
     command: npm run main
     args:
-      chdir: "{{ local_repo_path }}"
+      chdir: /home/ubuntu
+  - name: setup nginx
+      apt: name=nginx update_cache=yes state=latest
+      
   - name: Copy folder to /var/www
     copy:
-     src: "{{ local_repo_path }}/build"
+     src: /home/ubuntu/build
      dest: /var/www
      remote_src: no
   
-- name: Recursively change ownership of a directory
-    file:
-        path: /etc/nginx/SSL
-        state: directory
-        recurse: yes
-  - name: Retrieve OpenSSH key pair
-    copy:
-        owner: root
-        group: root
-        src: "{{ item.0 }}"
-        dest: "{{ item.1 }}"
-        mode: "0400"
-      with_together:
-        - ['local_path/example.crt', 'local_path/example.key', 'example.conf']
-        - ['/etc/nginx/SSL/example.crt', '/etc/nginx/SSL/example.key', '/etc/nginx/sites-available/example.conf']
+  - name: Recursively change ownership of a directory
+      file:
+          path: /etc/nginx/SSL
+          state: directory
+          recurse: yes
 
   - name: Makes a link
     file:
-      src: /etc/ngnix/sites-available/example.conf
-      dest: /etc/nginx/sites-enabled/example.conf
+      src: /etc/ngnix/sites-available/app.conf
+      dest: /etc/nginx/sites-enabled/app.conf
       state: link
+
   - name: Remove files
     file:
      path: "{{ item }}"
